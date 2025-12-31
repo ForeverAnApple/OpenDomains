@@ -1,0 +1,53 @@
+# Domain Finder Configuration
+
+# TLD priority tiers
+tlds:
+  tier1:
+    - com
+    - io
+    - ai
+    - co
+  tier2:
+    - app
+    - dev
+    - tech
+    - net
+    - org
+  tier3:
+    - xyz
+    - sh
+    - gg
+    - so
+    - to
+
+# Word generation settings
+generation:
+  min_length: 4
+  max_length: 12
+  max_compound_length: 15
+
+# Scoring weights (must sum to 1.0)
+scoring:
+  weights:
+    pronounceability: 0.30
+    spellability: 0.25
+    length: 0.15
+    memorability: 0.15
+    brandability: 0.15
+  tld_multipliers:
+    com: 1.5
+    io: 1.3
+    ai: 1.3
+    co: 1.2
+    app: 1.2
+    dev: 1.2
+    default: 1.0
+
+# Checker settings
+checker:
+  dns_timeout: 3
+  whois_timeout: 10
+  batch_size: 50
+  rate_limit_delay: 1.5  # Increased to avoid rate limiting
+  max_concurrent: 10     # Reduced for DNS
+  whois_backoff: 5       # Wait time after rate limit error
