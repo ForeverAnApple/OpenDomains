@@ -411,6 +411,7 @@ def score(domain):
     console.print(f"  Length:           {result.length_score}/100")
     console.print(f"  Memorability:     {result.memorability}/100")
     console.print(f"  Brandability:     {result.brandability}/100")
+    console.print(f"  Euphony:          {result.euphony}/100")
     console.print(f"  Dictionary:       {result.dictionary_score}/100")
     console.print(f"  TLD Multiplier:   {result.tld_multiplier}x")
 

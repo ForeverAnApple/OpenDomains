@@ -60,6 +60,8 @@ Breakdown:
   Length:           100/100
   Memorability:     90/100
   Brandability:     95/100
+  Euphony:          85/100
+  Dictionary:       100/100
   TLD Multiplier:   1.5x
 ```
 
@@ -73,15 +75,26 @@ Breakdown:
 
 ## Scoring System
 
-Domains are scored on 5 factors (0-100 each):
+Domains are scored on 7 factors (0-100 each):
 
-- **Pronounceability** (30%) - Easy to say out loud
-- **Spellability** (25%) - No ambiguous spellings
-- **Length** (15%) - Shorter is better (4-6 chars ideal)
-- **Memorability** (15%) - Recognizable patterns, real words
-- **Brandability** (15%) - Strong sounds, visual appeal
+- **Dictionary** (30%) - Real English words or meaningful compounds
+- **Euphony** (20%) - Pleasant sound and sophisticated morpheme quality
+- **Brandability** (20%) - Strong sounds, tech associations, and visual appeal
+- **Memorability** (15%) - Recognizable patterns and mental imagery
+- **Length** (5%) - Shorter is better (4-7 chars ideal)
+- **Pronounceability** (5%) - Easy to say out loud
+- **Spellability** (5%) - No ambiguous spellings
 
 TLD multipliers boost scores: `.com` (1.5x), `.io/.ai` (1.3x), `.co/.app/.dev` (1.2x)
+
+## Utilities
+
+Beyond the main CLI, several utility scripts are available for specialized tasks:
+
+- **`analyze_auctions.py`**: Analyzes domain auction exports (Namecheap/GoDaddy CSVs) to find undervalued gems. Supports "vibe" filtering (elegant, brandable, tech, neutral) and valuation-to-price ratios.
+- **`rescore_domains.py`**: Re-scores all domains in the local database using the latest scoring algorithm.
+
+> **Note**: Many previous one-off scripts have been consolidated into the main `main.py` CLI for a more consistent experience.
 
 ## Configuration
 

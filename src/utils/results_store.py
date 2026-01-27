@@ -26,7 +26,7 @@ class ResultsStore:
                     available INTEGER,
                     method TEXT,
                     error TEXT,
-                    
+
                     -- Score fields
                     total_score REAL,
                     pronounceability INTEGER,
@@ -34,15 +34,23 @@ class ResultsStore:
                     length_score INTEGER,
                     memorability INTEGER,
                     brandability INTEGER,
+                    euphony INTEGER NOT NULL DEFAULT 0,
                     dictionary_score INTEGER,
                     tld_multiplier REAL,
-                    
+
                     -- Timestamps
                     first_checked TEXT,
                     last_checked TEXT,
                     check_count INTEGER DEFAULT 1
                 )
             """)
+
+            # Add euphony column if it doesn't exist (for existing databases)
+            try:
+                conn.execute("ALTER TABLE domains ADD COLUMN euphony INTEGER NOT NULL DEFAULT 0")
+            except sqlite3.OperationalError:
+                # Column already exists, ignore error
+                pass
             
             # Indexes for common queries
             conn.execute("CREATE INDEX IF NOT EXISTS idx_available ON domains(available)")
@@ -87,9 +95,9 @@ class ResultsStore:
                 INSERT OR REPLACE INTO domains (
                     domain, word, tld, available, method, error,
                     total_score, pronounceability, spellability, length_score,
-                    memorability, brandability, dictionary_score, tld_multiplier,
+                    memorability, brandability, euphony, dictionary_score, tld_multiplier,
                     first_checked, last_checked, check_count
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 domain, word, tld,
                 1 if available is True else (0 if available is False else None),
@@ -100,6 +108,7 @@ class ResultsStore:
                 score.get("length_score") if score else None,
                 score.get("memorability") if score else None,
                 score.get("brandability") if score else None,
+                score.get("euphony") if score else 0,
                 score.get("dictionary_score") if score else None,
                 score.get("tld_multiplier") if score else None,
                 first_checked, now, check_count
@@ -133,9 +142,9 @@ class ResultsStore:
                     INSERT OR REPLACE INTO domains (
                         domain, word, tld, available, method, error,
                         total_score, pronounceability, spellability, length_score,
-                        memorability, brandability, dictionary_score, tld_multiplier,
+                        memorability, brandability, euphony, dictionary_score, tld_multiplier,
                         first_checked, last_checked, check_count
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     domain, word, tld,
                     1 if available is True else (0 if available is False else None),
@@ -146,6 +155,7 @@ class ResultsStore:
                     score.get("length_score"),
                     score.get("memorability"),
                     score.get("brandability"),
+                    score.get("euphony") or 0,
                     score.get("dictionary_score"),
                     score.get("tld_multiplier"),
                     first_checked, now, check_count
