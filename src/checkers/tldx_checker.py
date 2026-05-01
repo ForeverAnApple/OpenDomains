@@ -112,7 +112,7 @@ class TldxChecker:
                 for domain, available in batch_results.items():
                     if domain in domain_set:
                         results[domain] = available
-                completed += sum(1 for kw in batch if f"{kw}.{tld}" in domain_set)
+                completed += len(batch)
                 if progress_callback:
                     progress_callback(completed, total)
 
