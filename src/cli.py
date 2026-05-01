@@ -2,7 +2,6 @@
 
 import json
 import click
-import logging
 import warnings
 from pathlib import Path
 from rich.console import Console
@@ -10,10 +9,7 @@ from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeRemainingColumn
 from typing import List, Optional
 
-# Suppress noisy library warnings/errors (socket, whois, dns)
 warnings.filterwarnings("ignore")
-logging.getLogger("whois").setLevel(logging.CRITICAL)
-logging.getLogger("dns").setLevel(logging.CRITICAL)
 
 from .generators import DictionaryGenerator, PhoneticGenerator, CompoundGenerator
 from .checkers import AvailabilityService
@@ -94,10 +90,9 @@ def generate(dictionary, phonetic, compound, count, output, min_length, max_leng
 @click.argument('words', nargs=-1)
 @click.option('--wordlist', '-w', default=None, help='Path to wordlist file')
 @click.option('--tlds', '-t', default='com,io,ai', help='TLDs to check (comma-separated)')
-@click.option('--verify/--no-verify', default=True, help='Verify with WHOIS')
 @click.option('--output', '-o', default=None, help='Output file (JSON)')
 @click.option('--min-score', default=0, help='Minimum score to include')
-def check(words, wordlist, tlds, verify, output, min_score):
+def check(words, wordlist, tlds, output, min_score):
     """Check domain availability."""
     tld_list = [t.strip() for t in tlds.split(',')]
     
@@ -134,37 +129,25 @@ def check(words, wordlist, tlds, verify, output, min_score):
     ) as progress:
         total = len(word_list) * len(tld_list)
         cache_task = progress.add_task("[cyan]Cache lookup...", total=total)
-        dns_task = progress.add_task("[blue]DNS check...", total=0, visible=False)
-        whois_task = progress.add_task("[yellow]WHOIS verify...", total=0, visible=False)
-        
-        phase_totals = {}
-        
+        tldx_task = progress.add_task("[blue]tldx check...", total=0, visible=False)
+
+        tldx_started = False
+
         def update_phase(phase, current, phase_total):
+            nonlocal tldx_started
             if phase == 'cache':
                 progress.update(cache_task, completed=current)
                 if current == phase_total:
                     progress.update(cache_task, visible=False)
-            elif phase == 'dns':
-                if phase not in phase_totals:
-                    phase_totals['dns'] = phase_total
-                    progress.update(dns_task, total=phase_total, visible=True)
-                progress.update(dns_task, completed=current)
-                if current == phase_total:
-                    progress.update(dns_task, visible=False)
-            elif phase == 'whois':
-                if phase not in phase_totals:
-                    phase_totals['whois'] = phase_total
-                    progress.update(whois_task, total=phase_total, visible=True)
-                progress.update(whois_task, completed=current)
-        
-        # Get ALL results, not just available ones
+            elif phase == 'tldx':
+                if not tldx_started:
+                    tldx_started = True
+                    progress.update(tldx_task, total=phase_total, visible=True)
+                progress.update(tldx_task, completed=current)
+
         domains = [f"{word}.{tld}" for word in word_list for tld in tld_list]
-        results = service.check_batch(
-            domains,
-            verify_with_whois=verify,
-            phase_callback=update_phase
-        )
-        
+        results = service.check_batch(domains, phase_callback=update_phase)
+
         for result in results:
             score = scorer.score(result.domain)
             score_dict = {
@@ -177,8 +160,7 @@ def check(words, wordlist, tlds, verify, output, min_score):
                 "dictionary_score": score.dictionary_score,
                 "tld_multiplier": score.tld_multiplier
             }
-            
-            # Store all results
+
             all_results_to_store.append({
                 "domain": result.domain,
                 "available": result.available,
@@ -186,7 +168,7 @@ def check(words, wordlist, tlds, verify, output, min_score):
                 "error": result.error,
                 "score": score_dict
             })
-            
+
             if result.available and score.total_score >= min_score:
                 available_domains.append({
                     'domain': result.domain,
@@ -195,15 +177,12 @@ def check(words, wordlist, tlds, verify, output, min_score):
                     'method': result.method,
                     'cached': result.cached
                 })
-    
-    # Store all results to SQLite
+
     store.add_batch(all_results_to_store)
     console.print(f"[dim]Stored {len(all_results_to_store)} results to database[/dim]")
-    
-    # Sort by score
+
     available_domains.sort(key=lambda x: x['score'], reverse=True)
-    
-    # Display results
+
     if available_domains:
         table = Table(title="Available Domains")
         table.add_column("Domain", style="cyan")
@@ -241,8 +220,7 @@ def check(words, wordlist, tlds, verify, output, min_score):
 @click.option('--count', '-n', default=200, help='Number of words to generate')
 @click.option('--min-score', default=70, help='Minimum score threshold')
 @click.option('--output', '-o', default='data/results/available_domains.json', help='Output file')
-@click.option('--verify/--no-verify', default=True, help='Verify with WHOIS')
-def hunt(tlds, count, min_score, output, verify):
+def hunt(tlds, count, min_score, output):
     """Full pipeline: generate, check, score, and find gems."""
     tld_list = [t.strip() for t in tlds.split(',')]
     
@@ -283,36 +261,24 @@ def hunt(tlds, count, min_score, output, verify):
     ) as progress:
         total = len(word_list) * len(tld_list)
         cache_task = progress.add_task("[cyan]Cache lookup...", total=total)
-        dns_task = progress.add_task("[blue]DNS check...", total=0, visible=False)
-        whois_task = progress.add_task("[yellow]WHOIS verify...", total=0, visible=False)
-        
-        phase_totals = {}
-        
+        tldx_task = progress.add_task("[blue]tldx check...", total=0, visible=False)
+
+        tldx_started = False
+
         def update_phase(phase, current, phase_total):
+            nonlocal tldx_started
             if phase == 'cache':
                 progress.update(cache_task, completed=current)
                 if current == phase_total:
                     progress.update(cache_task, visible=False)
-            elif phase == 'dns':
-                if phase not in phase_totals:
-                    phase_totals['dns'] = phase_total
-                    progress.update(dns_task, total=phase_total, visible=True)
-                progress.update(dns_task, completed=current)
-                if current == phase_total:
-                    progress.update(dns_task, visible=False)
-            elif phase == 'whois':
-                if phase not in phase_totals:
-                    phase_totals['whois'] = phase_total
-                    progress.update(whois_task, total=phase_total, visible=True)
-                progress.update(whois_task, completed=current)
-        
-        # Get ALL results, not just available ones
+            elif phase == 'tldx':
+                if not tldx_started:
+                    tldx_started = True
+                    progress.update(tldx_task, total=phase_total, visible=True)
+                progress.update(tldx_task, completed=current)
+
         domains = [f"{word}.{tld}" for word in word_list for tld in tld_list]
-        results = service.check_batch(
-            domains,
-            verify_with_whois=verify,
-            phase_callback=update_phase
-        )
+        results = service.check_batch(domains, phase_callback=update_phase)
         
         for result in results:
             score = scorer.score(result.domain)

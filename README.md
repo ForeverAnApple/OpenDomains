@@ -10,6 +10,8 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+Availability checking is powered by the external [`tldx`](https://github.com/brandonyoungdev/tldx) CLI; install it (e.g. `brew install tldx`) and ensure it's on your `PATH`.
+
 ## Usage
 
 ### Hunt for Domains (Full Pipeline)
@@ -38,9 +40,6 @@ python main.py check swift bolt nexu --tlds com,io,ai
 
 # Check from a wordlist file
 python main.py check --wordlist data/wordlists/words.json --tlds com,io
-
-# Skip WHOIS verification (faster but less accurate)
-python main.py check myword --no-verify
 ```
 
 ### Score a Domain

@@ -1,5 +1,4 @@
-from .dns_checker import DNSChecker
-from .whois_checker import WhoisChecker
+from .tldx_checker import TldxChecker
 from .availability_service import AvailabilityService
 
-__all__ = ['DNSChecker', 'WhoisChecker', 'AvailabilityService']
+__all__ = ['TldxChecker', 'AvailabilityService']

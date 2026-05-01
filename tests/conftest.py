@@ -31,116 +31,21 @@ def pytest_configure(config):
 
 
 # ==============================================================================
-# Mock DNS Fixtures
+# Mock tldx Fixtures
 # ==============================================================================
 
 @pytest.fixture
-def mock_dns_available(monkeypatch):
-    """Return 'NOERROR' for available domains."""
-    def mock_resolve(domain, record_type):
-        raise Exception("NXDOMAIN")
+def mock_tldx_checker():
+    """Mock TldxChecker with predefined responses."""
+    from src.checkers.tldx_checker import TldxChecker
 
-    import dns.resolver
-    monkeypatch.setattr(dns.resolver.Resolver, 'resolve', mock_resolve)
-    return True
+    checker = Mock(spec=TldxChecker)
+    available_domains = {'test1.com', 'test2.io', 'test3.ai'}
 
-
-@pytest.fixture
-def mock_dns_unavailable(monkeypatch):
-    """Return 'NXDOMAIN' for taken domains."""
-    def mock_resolve(domain, record_type):
-        # Mock response indicating domain exists
-        return MagicMock()  # Has records, not available
-
-    import dns.resolver
-    monkeypatch.setattr(dns.resolver.Resolver, 'resolve', mock_resolve)
-    return False
-
-
-@pytest.fixture
-def mock_dns_timeout(monkeypatch):
-    """Simulate DNS timeout."""
-    def mock_resolve(domain, record_type):
-        raise Exception("Timeout")
-
-    import dns.resolver
-    monkeypatch.setattr(dns.resolver.Resolver, 'resolve', mock_resolve)
-    return None
-
-
-@pytest.fixture
-def mock_dns_checker():
-    """Mock DNSChecker with predefined responses."""
-    from src.checkers.dns_checker import DNSChecker
-
-    checker = Mock(spec=DNSChecker)
-
-    def check_single_side_effect(domain: str) -> bool:
-        available_domains = {'test1.com', 'test2.io', 'test3.ai'}
-        return domain in available_domains
-
-    checker.check_single.side_effect = check_single_side_effect
-
-    def check_batch_side_effect(domains):
-        return {d: d in {'test1.com', 'test2.io', 'test3.ai'} for d in domains}
-
-    checker.check_batch.side_effect = check_batch_side_effect
-
-    return checker
-
-
-# ==============================================================================
-# Mock WHOIS Fixtures
-# ==============================================================================
-
-@pytest.fixture
-def mock_whois_available(monkeypatch):
-    """Mock WHOIS response for available domains."""
-    def mock_whois(domain):
-        raise Exception("WhoisDomainNotFoundError")
-
-    import whois
-    monkeypatch.setattr(whois, 'whois', mock_whois)
-    return True
-
-
-@pytest.fixture
-def mock_whois_registered(monkeypatch):
-    """Mock WHOIS response for registered domains."""
-    def mock_whois(domain):
-        # Return mock WHOIS data indicating registration
-        mock_data = Mock()
-        mock_data.domain_name = domain
-        mock_data.registrar = "Test Registrar"
-        mock_data.creation_date = "2020-01-01"
-        mock_data.expiration_date = "2025-01-01"
-        mock_data.name_servers = ["ns1.example.com"]
-        mock_data.status = ["clientTransferProhibited"]
-        return mock_data
-
-    import whois
-    monkeypatch.setattr(whois, 'whois', mock_whois)
-    return False
-
-
-@pytest.fixture
-def mock_whois_checker():
-    """Mock WhoisChecker with predefined responses."""
-    from checkers.whois_checker import WhoisChecker
-
-    checker = Mock(spec=WhoisChecker)
-
-    def check_single_side_effect(domain: str) -> bool:
-        available_domains = {'test1.com', 'test2.io', 'test3.ai'}
-        return domain in available_domains
-
-    checker.check_single.side_effect = check_single_side_effect
-
-    def check_batch_side_effect(domains):
-        return {d: d in {'test1.com', 'test2.io', 'test3.ai'} for d in domains}
-
-    checker.check_batch.side_effect = check_batch_side_effect
-
+    checker.check_single.side_effect = lambda d: d in available_domains
+    checker.check_batch.side_effect = lambda domains, progress_callback=None: {
+        d: d in available_domains for d in domains
+    }
     return checker
 
 
